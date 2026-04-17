@@ -90,11 +90,11 @@ export default class TimeSlotService {
       end_time: { $lte: endDateTime },
     });
   }
-  
+
   async getTimeSlots(filters = {}): Promise<ITimeSlot[]> {
     return await TimeSlot.find(filters).sort('start_time');
   }
-  
+
   async getAvailableTimeSlots(
     turfId: string,
     date: Date,
@@ -105,9 +105,15 @@ export default class TimeSlotService {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // Get current time
+    const currentTime = new Date();
+
     return await TimeSlot.find({
       turf: turfId,
-      start_time: { $gte: startOfDay, $lte: endOfDay },
+      start_time: {
+        $gte: currentTime > startOfDay ? currentTime : startOfDay,
+        $lte: endOfDay
+      },
       is_available: true,
     }).sort('start_time');
   }

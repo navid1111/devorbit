@@ -38,14 +38,6 @@ export default class OrganizationRequestController {
         requestNotes,
       } = req.body;
       console.log("Request body:", req.body);
-
-      console.log(organizationName)
-      console.log(facilities)
-      console.log(location)
-      console.log(contactPhone)
-      console.log(ownerEmail) 
-      console.log(orgContactPhone)
-      console.log(orgContactEmail)  
         
       // Validate required fields
       if (

@@ -19,7 +19,7 @@ const router = express.Router({ mergeParams: true });
 // Get all users
 router.get(
   "/admin",
-  standardApiLimiter,
+  
   protect,
     // checkPermission('view_users'),
   getUsersAdmin
@@ -28,7 +28,7 @@ router.get(
 // Get user by ID
 router.get(
   "/:userId/admin",
-  standardApiLimiter,
+  
   //   checkPermission('view_users'),
   getUserByIdAdmin
 );
@@ -36,18 +36,18 @@ router.get(
 //User endpoints
 
 // Get current user's profile
-router.get("/me",standardApiLimiter, protect, getCurrentUserProfile);
+router.get("/me", protect, getCurrentUserProfile);
 
 // Update current user's profile
-router.put("/me",standardApiLimiter, protect, updateUserProfile);
+router.put("/me", protect, updateUserProfile);
 
 // Change user password
-router.put("/change-password",standardApiLimiter, protect, changePassword);
+router.put("/change-password", protect, changePassword);
 
 // Get user's organizations
-router.get("/organizations",standardApiLimiter, protect, getUserOrganizations);
+router.get("/organizations", protect, getUserOrganizations);
 
-router.get('/without-global-roles',standardApiLimiter, protect,getUsersWithoutGlobalRoles)
-router.get('/organizations/:organizationId/check-access',standardApiLimiter, protect,checkOrganizationRole)
+router.get('/without-global-roles', protect,getUsersWithoutGlobalRoles)
+router.get('/organizations/:organizationId/check-access', protect,checkOrganizationRole)
 
 export default router;

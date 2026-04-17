@@ -1,6 +1,12 @@
 FROM node:20-alpine
 
-# Create app directory in the container
+# Install tzdata to manage timezones
+RUN apk add --no-cache tzdata
+
+# Set timezone to GMT+6 (Asia/Dhaka as example)
+ENV TZ=Asia/Dhaka
+
+# Create app directory
 WORKDIR /usr/src/app
 
 # Copy package files
@@ -9,14 +15,14 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy the rest of application code
-COPY . ./
+# Copy rest of app
+COPY . .
 
-# Build the TypeScript application
+# Build TypeScript app
 RUN npm run build
 
-# Expose the port the app runs on
+# Expose port (note: actual port must come from process.env.PORT)
 EXPOSE 80
 
-# Command to run the application
+# Start app
 CMD ["npm", "start"]

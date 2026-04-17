@@ -32,7 +32,7 @@ const upload = multer({
 // Create Organization (Admin only)
 router.post(
   '/',
-  standardApiLimiter,
+  
   protect,
 
   checkPermission('create_organization'), // Global permission check
@@ -43,7 +43,7 @@ router.post(
 // Assign Owner to Organization (Admin only)
 router.post(
   '/:id/assign-owner',
-  standardApiLimiter,
+  
   protect,
   checkPermission('assign_organization_owner'), // Global permission check
   assignOwner,
@@ -52,7 +52,7 @@ router.post(
 // Update Organization Details (Org Owner or role with permission)
 router.put(
   '/:id',
-  standardApiLimiter,
+  
   protect,
   checkPermission('update_organization'), // Organization-scoped permission check
   upload.array('images', 5), // Handle optional image updates
@@ -62,7 +62,7 @@ router.put(
 // Delete Organization (Org Owner or Admin)
 router.delete(
   '/:id',
-  standardApiLimiter,
+  
   protect,
 
   checkPermission('delete_own_organization'), // Check this first (most common case)
@@ -75,7 +75,7 @@ router.get('/:id', getOrganization);
 
 router.post(
   '/:id/roles', // Use :id for organizationId for consistency
-  standardApiLimiter,
+  
   protect,
   checkPermission('manage_organization_roles'), // Organization-scoped
   createOrganizationRole,
@@ -83,7 +83,7 @@ router.post(
 
 router.get(
   '/:organizationId/roles',
-  standardApiLimiter,
+  
   protect,
   checkPermission('view_roles'),
   getOrganizationRoles,
@@ -91,7 +91,7 @@ router.get(
 
 router.post(
   '/:organizationId/users/:userId/assignments',
-  standardApiLimiter,
+  
   protect,
   checkPermission('manage_organization_roles'),
   assignOrganizationRole,

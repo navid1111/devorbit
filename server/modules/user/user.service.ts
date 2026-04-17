@@ -114,14 +114,14 @@ class UserService {
       // Explicitly check allowed fields and create a sanitized update object
       const allowedFields = ['first_name', 'last_name', 'phone_number'];
       const sanitizedUpdateData: Record<string, any> = {};
-      
+
       // Only add allowed fields to the sanitized update data
       for (const field of allowedFields) {
         if (field in updateData) {
           sanitizedUpdateData[field] = updateData[field as keyof typeof updateData];
         }
       }
-      
+
       // Check for invalid fields
       const invalidFields = Object.keys(updateData).filter(
         field => !allowedFields.includes(field),
@@ -155,6 +155,54 @@ class UserService {
       if (!user) {
         throw new ErrorResponse('User not found', 404);
       }
+
+
+
+      // Create HTML content for the email
+      const htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px; background-color: #f9f9f9;">
+            <h2 style="color: #4a9d61; text-align: center; margin-bottom: 20px;">Profile Updated</h2>
+            
+            <div style="background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 3px; padding: 15px; margin-bottom: 20px;">
+              <h3 style="color: #333; margin-top: 0;">Dear ${user.first_name || 'Valued User'},</h3>
+              <p style="font-size: 16px; line-height: 1.6;">
+                Your profile information has been successfully updated on TurfMania.
+              </p>
+              
+              <p style="font-size: 16px; line-height: 1.6;">
+                This update was made on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}.
+              </p>
+            </div>
+            
+            <div style="background-color: #fff8e1; border-left: 4px solid #ffa726; padding: 15px; margin-bottom: 20px;">
+              <h4 style="color: #f57c00; margin-top: 0; margin-bottom: 10px;">ℹ️ Security Notice</h4>
+              <p style="font-size: 15px; margin: 0;">
+                If you did not make these changes to your profile, please contact our support team immediately.
+              </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${process.env.CLIENT_URL}/profile" style="background-color: #4a9d61; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">View Your Profile</a>
+            </div>
+            
+            <p style="font-size: 15px; line-height: 1.6; color: #555; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+              If you have any questions or need assistance, please contact our support team at
+              <a href="mailto:supportMail@gmail.com" style="color: #4a9d61; text-decoration: none;">supportMail@gmail.com</a>.
+            </p>
+            
+            <p style="font-size: 12px; color: #999; font-style: italic; margin-top: 20px; text-align: center;">
+              This is an automated message. Please do not reply directly to this email.
+            </p>
+          </div>
+        `;
+
+      // Send update confirmation email
+      await sendEmail(
+        user.email,
+        'Profile Updated - TurfMania',
+        `Your profile information has been updated. If you did not make these changes, please contact support immediately.`,
+        htmlContent
+      );
 
       return user;
     } catch (error: any) {
@@ -193,11 +241,52 @@ class UserService {
       user.password = newPassword;
       await user.save();
 
-      // Send confirmation email
+      // Create HTML content for the email
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px; background-color: #f9f9f9;">
+          <h2 style="color: #4a9d61; text-align: center; margin-bottom: 20px;">Password Changed Successfully</h2>
+          
+          <div style="background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 3px; padding: 15px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Dear ${user.first_name || 'Valued User'},</h3>
+            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              Your password was successfully changed. This change was made on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}.
+            </p>
+          </div>
+          
+          <div style="background-color: #eafbf0; border-left: 4px solid #4a9d61; padding: 15px; margin-bottom: 20px;">
+            <p style="font-size: 15px; margin: 0;">
+              If you changed your password, no further action is required.
+            </p>
+          </div>
+          
+          <div style="background-color: #ffebee; border-left: 4px solid #d32f2f; padding: 15px; margin-bottom: 20px;">
+            <h4 style="color: #d32f2f; margin-top: 0; margin-bottom: 10px;">⚠️ Important Security Notice</h4>
+            <p style="font-size: 15px; margin: 0;">
+              If you did NOT make this change, please contact our support team immediately as your account may have been compromised.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 25px;">
+            <a href="${process.env.CLIENT_URL}/sign-in" style="background-color: #4a9d61; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Go to Login</a>
+          </div>
+          
+          <p style="font-size: 15px; line-height: 1.6; color: #555; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            If you have any questions or need assistance, please contact our support team at
+            <a href="mailto:supportMail@gmail.com" style="color: #4a9d61; text-decoration: none;">supportMail@gmail.com</a>.
+          </p>
+          
+          <p style="font-size: 12px; color: #999; font-style: italic; margin-top: 20px; text-align: center;">
+            This is an automated message. Please do not reply directly to this email.
+          </p>
+        </div>
+      `;
+
+      // Send confirmation email with both text and HTML versions
       await sendEmail(
         user.email,
-        'Password Change Successful',
+        'Password Change Successful - TurfMania',
         'Your password has been successfully changed. If you did not perform this action, please contact support immediately.',
+        htmlContent
       );
 
       return { success: true, message: 'Password changed successfully' };
@@ -291,7 +380,7 @@ class UserService {
     }
   }
 
-  
+
   /**
    * Check if user has any role in a specific organization
    * @param userId - The ID of the user
@@ -323,9 +412,9 @@ class UserService {
       throw new ErrorResponse(
         error.message ?? 'Failed to check organization role',
         error.statusCode ?? 500,
-      );
-    }
-  }
+      );
+    }
+  }
 }
 
 export const userService = new UserService();

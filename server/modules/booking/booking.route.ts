@@ -11,34 +11,34 @@ const bookingController = new BookingController();
 // User Endpoints
 router.post(
     '/',
-    standardApiLimiter,
+
     protect,
     bookingController.createBooking
 );
 
 router.put(
     '/:id/complete-stripe',
-    standardApiLimiter,
+
     protect,
     bookingController.completeStripeBooking
 );
 
 router.put(
     '/:id/complete-cash',
-    standardApiLimiter,
+
     protect,
     bookingController.completeCashBooking
 );
 
 router.get(
     '/user',
-    standardApiLimiter,
+
     protect,
     bookingController.getUserBookings
 );
 router.get(
     '/:id',
-    standardApiLimiter,
+
     protect,
     bookingController.getBooking
 );
@@ -46,7 +46,7 @@ router.get(
 // Admin Endpoints
 router.get(
     '/',
-    standardApiLimiter,
+
     protect,
     checkPermission('global_manage_bookings'),
     bookingController.getAllBookings
@@ -54,7 +54,7 @@ router.get(
 
 router.get(
     '/admin/:id',
-    standardApiLimiter,
+
     protect,
     checkPermission('global_manage_bookings'),
     bookingController.getBookingAsAdmin
@@ -63,7 +63,7 @@ router.get(
 // New Turf-specific Bookings
 router.get(
     '/turf/:turfId',
-    standardApiLimiter,
+
     protect,
     checkPermission('manage_bookings'),
     bookingController.getTurfBookings
@@ -72,7 +72,7 @@ router.get(
 // Earnings Reports
 router.get(
     '/turf/:turfId/monthly-earnings',
-    standardApiLimiter,
+
     protect,
     checkPermission('manage_bookings'),
     bookingController.getTurfMonthlyEarnings
@@ -80,7 +80,7 @@ router.get(
 
 router.get(
     '/turf/:turfId/current-month-earnings',
-    standardApiLimiter,
+
     protect,
     checkPermission('manage_bookings'),
     bookingController.getTurfCurrentMonthEarnings
@@ -88,7 +88,7 @@ router.get(
 
 router.get(
     '/organization/:organizationId/current-month-earnings',
-    standardApiLimiter,
+
     protect,
     checkPermission('manage_bookings'),
     bookingController.getOrganizationCurrentMonthEarnings

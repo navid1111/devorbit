@@ -4,10 +4,19 @@ import Role, { IRole } from '../role.model';
 import Permission, { PermissionScope } from '../../permission/permission.model';
 import UserRoleAssignment from '../../role_assignment/userRoleAssignment.model';
 import ErrorResponse from '../../../utils/errorResponse';
+import { permissionCacheService } from '../../../shared/service/permissionCache.service';
 
 jest.mock('../role.model');
 jest.mock('../../permission/permission.model');
 jest.mock('../../role_assignment/userRoleAssignment.model');
+jest.mock('../../../shared/service/permissionCache.service', () => ({
+  permissionCacheService: {
+    getPermissionIds: jest.fn(),
+    setPermissionIds: jest.fn(),
+    invalidateForUser: jest.fn(),
+    invalidateForUsers: jest.fn(),
+  },
+}));
 
 // Fix the organization model mock - use jest.mock with a factory function
 // instead of using a variable that isn't hoisted properly
@@ -46,6 +55,10 @@ describe('RoleService', () => {
       (Role.findByIdAndUpdate as any) = jest.fn().mockReturnValue({ 
         populate: jest.fn().mockResolvedValue({ name: 'Updated' }) 
       });
+      (UserRoleAssignment.find as any).mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([]),
+      });
 
       const result = await roleService.updateOrganizationRole(
         '507f1f77bcf86cd799439011',
@@ -54,6 +67,7 @@ describe('RoleService', () => {
       );
       
       expect(result).toHaveProperty('name', 'Updated');
+      expect(permissionCacheService.invalidateForUsers).toHaveBeenCalled();
     });
 
     it('should throw 404 if role not found', async () => {
@@ -243,6 +257,11 @@ describe('RoleService', () => {
       // Mock deleteMany with session
       (UserRoleAssignment.deleteMany as jest.Mock) = jest.fn().mockReturnValue({
         session: jest.fn().mockResolvedValue({})
+      });
+
+      (UserRoleAssignment.find as any).mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([]),
       });
       
       // Mock deleteOne with session

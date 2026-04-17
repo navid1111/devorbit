@@ -8,10 +8,10 @@ const router = Router();
 const facilityController = new FacilityController();
 
 
-router.post("/",standardApiLimiter,protect, checkPermission("manage_tags"), facilityController.createFacility);
-router.get("/",standardApiLimiter,facilityController.getAllFacilities);
-router.get("/:id",standardApiLimiter, facilityController.getFacilityById);
-router.put("/:id",standardApiLimiter,protect, checkPermission("manage_tags"), facilityController.updateFacility);
-router.delete("/:id",standardApiLimiter,protect, checkPermission("manage_tags"), facilityController.deleteFacility);
+router.post("/",protect, checkPermission("manage_tags"), facilityController.createFacility);
+router.get("/",facilityController.getAllFacilities);
+router.get("/:id", facilityController.getFacilityById);
+router.put("/:id",protect, checkPermission("manage_tags"), facilityController.updateFacility);
+router.delete("/:id",protect, checkPermission("manage_tags"), facilityController.deleteFacility);
 
 export default router;

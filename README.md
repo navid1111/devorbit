@@ -1,10 +1,10 @@
 # TurfMania
 
 <div align="center">
-  <img src="https://res.cloudinary.com/dzqgzquno/image/upload/fl_preserve_transparency/v1746033754/Gemini_Generated_Image_r4hs33r4hs33r4hs_bvkqii.jpg?_s=public-apps" alt="TurfMania Logo" width="300"/>
+  <img src="https://res.cloudinary.com/dzqgzquno/image/upload/hero_section_z44xkp.gif" alt="TurfMania Logo" width="600"/>
   <h3>Your Game, Your Turf, Your Time</h3>
   
-  ![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
+  ![Express.js](https://img.shields.io/badge/Express.js-404D59?stycle=for-the-badge)
   ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
   ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
   ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
@@ -58,8 +58,7 @@ TurfMania is a comprehensive turf booking platform that connects sports enthusia
 
 ### Frontend
 - **Framework**: Next.js
-- **Styling**: (Based on your project, e.g., Tailwind CSS, Material UI)
-- **State Management**: (Based on your project, e.g., Redux, Context API)
+- **Styling**: (Tailwind CSS)
 - **Deployment**: Vercel
 
 ## Project Structure
@@ -107,7 +106,7 @@ Each module typically contains:
 ### Backend Setup
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/turfmania.git
+git clone https://github.com/whiteflags26/turfmania.git
 
 # Navigate to server directory
 cd turfmania/server

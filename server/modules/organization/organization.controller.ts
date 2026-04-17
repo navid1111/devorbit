@@ -79,7 +79,7 @@ export const createOrganization = asyncHandler(
         adminNotes,
       } = ensureRequiredFields(req.body);
 
-      const sanitizedName = sanitizeName(name);
+      const sanitizedName = name;
       const parsedFacilities = parseAndValidateFacilities(facilities);
       const parsedLocation = parseAndValidateLocation(rawLocation);
 

@@ -4,6 +4,7 @@ import Organization from '../organization/organization.model';
 import Permission, { PermissionScope } from '../permission/permission.model';
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
 import Role, { IRole } from './role.model';
+import { permissionCacheService } from '../../shared/service/permissionCache.service';
 
 interface RoleUpdateData {
   name?: string;
@@ -130,6 +131,22 @@ export default class RoleService {
 
       if (!updatedRole) {
         throw new ErrorResponse('Role not found', 404);
+      }
+
+      if (permissionIds) {
+        const assignments = await UserRoleAssignment.find({
+          roleId: roleObjectId,
+          scope: PermissionScope.ORGANIZATION,
+          scopeId: orgObjectId,
+        })
+          .select('userId')
+          .lean<{ userId: Types.ObjectId }[]>();
+
+        await permissionCacheService.invalidateForUsers(
+          assignments.map(assignment => assignment.userId),
+          PermissionScope.ORGANIZATION,
+          orgObjectId,
+        );
       }
 
       return updatedRole;
@@ -299,6 +316,14 @@ export default class RoleService {
       const session = await mongoose.startSession();
       session.startTransaction();
 
+      const assignmentsToDelete = await UserRoleAssignment.find({
+        roleId: role._id,
+      })
+        .select('userId scope scopeId')
+        .lean<
+          { userId: Types.ObjectId; scope: PermissionScope; scopeId?: Types.ObjectId }[]
+        >();
+
       try {
         // Delete all role assignments first
         await UserRoleAssignment.deleteMany({ roleId: role._id }).session(
@@ -310,6 +335,17 @@ export default class RoleService {
 
         // Commit the transaction
         await session.commitTransaction();
+
+        // Invalidate after commit so removed users lose cached permissions immediately.
+        await Promise.all(
+          assignmentsToDelete.map(assignment =>
+            permissionCacheService.invalidateForUser(
+              assignment.userId,
+              assignment.scope,
+              assignment.scopeId,
+            ),
+          ),
+        );
       } catch (error) {
         // If anything fails, rollback the transaction
         await session.abortTransaction();

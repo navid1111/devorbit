@@ -34,6 +34,7 @@ const corsOptions = {
 
 app.use(express.json());
 
+app.set('trust proxy', 1);
 // Use the same corsOptions configuration consistently
 app.use(cors(corsOptions));
 

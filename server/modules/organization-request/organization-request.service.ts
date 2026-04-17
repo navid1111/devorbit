@@ -247,11 +247,10 @@ export default class OrganizationRequestService {
       if (adminNotes) request.adminNotes = adminNotes;
       await request.save(options);
 
-      // Notify requester - this is not part of the transaction
-      // Only do this if we're not in a transaction or after transaction is complete
-      if (!session) {
-        await this.notifyRequestProcessed(request, true, wasEdited);
-      }
+      // Notify requester
+      
+      await this.notifyRequestProcessed(request, true, wasEdited);
+      
 
       return {
         success: true,
@@ -288,17 +287,34 @@ export default class OrganizationRequestService {
     try {
       // Get the original request
       const request = await this.getRequestById(requestId);
+      console.log(request);
       if (!request) {
         throw new ErrorResponse('Organization request not found', 404);
       }
 
       // Check for differences between request and new organization data
       const nameChanged = request.organizationName !== orgName;
+      console.log(
+        'requestName:',
+        request.organizationName,
+        'orgName:',
+        orgName,
+        'nameChanged:',
+        nameChanged,
+      );
 
       // Compare facilities (order might be different so we need to sort)
       const facilitiesChanged =
         facilities.length !== request.facilities.length ||
         !facilities.every(f => request.facilities.includes(f));
+      console.log(
+        'requestFacilities:',
+        request.facilities,
+        'newFacilities:',
+        facilities,
+        'facilitiesChanged:',
+        facilitiesChanged,
+      );
 
       // Compare location (check essential fields)
       const locationChanged =
@@ -309,9 +325,60 @@ export default class OrganizationRequestService {
           location.coordinates.coordinates[0] ||
         request.location.coordinates.coordinates[1] !==
           location.coordinates.coordinates[1];
+      console.log('locationChanged:', locationChanged, {
+        placeId: {
+          original: request.location.place_id,
+          new: location.place_id,
+          changed: request.location.place_id !== location.place_id,
+        },
+        address: {
+          original: request.location.address,
+          new: location.address,
+          changed: request.location.address !== location.address,
+        },
+        city: {
+          original: request.location.city,
+          new: location.city,
+          changed: request.location.city !== location.city,
+        },
+        coordinates: {
+          original: request.location.coordinates.coordinates,
+          new: location.coordinates.coordinates,
+          changed:
+            request.location.coordinates.coordinates[0] !==
+              location.coordinates.coordinates[0] ||
+            request.location.coordinates.coordinates[1] !==
+              location.coordinates.coordinates[1],
+        },
+      });
 
       const phoneChanged = request.orgContactPhone !== orgContactPhone;
+      console.log(
+        'requestPhone:',
+        request.orgContactPhone,
+        'newPhone:',
+        orgContactPhone,
+        'phoneChanged:',
+        phoneChanged,
+      );
+
       const emailChanged = request.orgContactEmail !== orgContactEmail;
+      console.log(
+        'requestEmail:',
+        request.orgContactEmail,
+        'newEmail:',
+        orgContactEmail,
+        'emailChanged:',
+        emailChanged,
+      );
+
+      console.log('SUMMARY - Changes detected:', {
+        nameChanged,
+        facilitiesChanged,
+        locationChanged,
+        phoneChanged,
+        emailChanged,
+      });
 
       return (
         nameChanged ||
@@ -345,8 +412,17 @@ export default class OrganizationRequestService {
         : this.getRejectionEmailSubject();
       const recipientName = this.getRecipientName(user, isOwner);
 
-      // Build main message
-      const message = this.buildMainMessage(
+      // Build text message for fallback
+      const textMessage = this.buildMainMessage(
+        recipientName,
+        request,
+        approved,
+        wasEdited,
+        isOwner,
+      );
+
+      // Build HTML message
+      const htmlContent = this.buildHtmlMessage(
         recipientName,
         request,
         approved,
@@ -359,7 +435,8 @@ export default class OrganizationRequestService {
         user,
         request,
         subject,
-        message,
+        textMessage,
+        htmlContent,
         approved,
         wasEdited,
         isOwner,
@@ -380,7 +457,7 @@ export default class OrganizationRequestService {
   }
 
   private getRecipientName(user: any, isOwner: boolean): string {
-    return user.name ?? (isOwner ? 'Owner' : 'Valued Customer');
+    return `${user.first_name || ''} ${user.last_name || ''}`.trim() || (isOwner ? 'Owner' : 'Valued Customer');
   }
 
   private buildMainMessage(
@@ -400,6 +477,127 @@ export default class OrganizationRequestService {
 
     message += this.getCommonFooter();
     return message;
+  }
+
+  private buildHtmlMessage(
+    recipientName: string,
+    request: IOrganizationRequest,
+    approved: boolean,
+    wasEdited: boolean,
+    isOwner: boolean,
+  ): string {
+    const headerColor = approved ? '#4a9d61' : '#d32f2f';
+    const headerText = approved 
+      ? wasEdited 
+        ? 'Organization Request Approved with Changes'
+        : 'Organization Request Approved'
+      : 'Organization Request Rejected';
+
+    let htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px; background-color: #f9f9f9;">
+        <h2 style="color: ${headerColor}; text-align: center; margin-bottom: 20px;">${headerText}</h2>
+        
+        <div style="background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 3px; padding: 15px; margin-bottom: 20px;">
+          <h3 style="color: #333; margin-top: 0;">Dear ${recipientName},</h3>
+    `;
+
+    if (approved) {
+      htmlContent += this.buildHtmlApprovalContent(request, wasEdited, isOwner);
+    } else {
+      htmlContent += this.buildHtmlRejectionContent(request);
+    }
+
+    htmlContent += this.getHtmlCommonFooter();
+    return htmlContent;
+  }
+
+  private buildHtmlApprovalContent(
+    request: IOrganizationRequest,
+    wasEdited: boolean,
+    isOwner: boolean,
+  ): string {
+    const orgName = request.organizationName;
+    
+    let content = `
+      <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        We are pleased to inform you that your request to create organization 
+        <strong>"${orgName}"</strong> has been approved${wasEdited ? ' with some changes' : ''}.
+      </p>
+      
+      <div style="background-color: #eafbf0; border-left: 4px solid #4a9d61; padding: 15px; margin: 20px 0;">
+        <p style="font-size: 15px; margin: 0;">
+          The organization has been successfully created in our system and is now active.
+          Visit ${process.env.ORGANIZATION_URL} to get access to your organization dashboard.
+          ${request.organizationId 
+            ? `<br><br><strong>Organization ID:</strong> ${request.organizationId}`
+            : ''
+          }
+        </p>
+      </div>
+    `;
+
+    if (wasEdited) {
+      content += `
+        <div style="background-color: #fff8e1; border-left: 4px solid #ffa726; padding: 15px; margin: 20px 0;">
+          <p style="font-size: 15px; margin: 0;">
+            <strong>Please Note:</strong> Some details of your request were modified during the approval process.
+            You can view the final organization details in your dashboard.
+          </p>
+        </div>
+      `;
+    }
+
+    if (isOwner) {
+      content += `
+        <p style="font-size: 16px; line-height: 1.6;">
+          As the owner of <strong>"${orgName}"</strong>, you now have full administrative access to manage the organization.
+        </p>
+        
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="${process.env.ORGANIZATION_URL}" 
+             style="background-color: #4a9d61; color: white; padding: 12px 24px; text-decoration: none; 
+                    border-radius: 4px; font-weight: bold; display: inline-block;">
+            Go to Organization Dashboard
+          </a>
+        </div>
+      `;
+    }
+
+    return content;
+  }
+
+  private buildHtmlRejectionContent(request: IOrganizationRequest): string {
+    let content = `
+      <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        We regret to inform you that your request to create organization 
+        <strong>"${request.organizationName}"</strong> has been rejected.
+      </p>
+    `;
+
+    if (request.adminNotes) {
+      content += `
+        <div style="background-color: #ffebee; border-left: 4px solid #d32f2f; padding: 15px; margin: 20px 0;">
+          <h4 style="color: #d32f2f; margin-top: 0; margin-bottom: 10px;">Reason for Rejection</h4>
+          <p style="font-size: 15px; margin: 0;">${request.adminNotes}</p>
+        </div>
+        
+        <p style="font-size: 16px; line-height: 1.6;">
+          You may submit a new request after addressing the issues mentioned above.
+        </p>
+      `;
+    }
+
+    content += `
+      <div style="text-align: center; margin-top: 25px;">
+        <a href="${process.env.CLIENT_URL}/organization-request" 
+           style="background-color: #2196f3; color: white; padding: 12px 24px; text-decoration: none; 
+                  border-radius: 4px; font-weight: bold; display: inline-block;">
+          Submit New Request
+        </a>
+      </div>
+    `;
+
+    return content;
   }
 
   private buildApprovalMessage(
@@ -449,32 +647,63 @@ export default class OrganizationRequestService {
     );
   }
 
+  private getHtmlCommonFooter(): string {
+    return `
+        </div>
+        
+        <p style="font-size: 15px; line-height: 1.6; color: #555; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          If you have any questions or need further assistance, please don't hesitate to contact our support team at
+          <a href="mailto:supportMail@gmail.com" style="color: #4a9d61; text-decoration: none;">supportMail@gmail.com</a>.
+        </p>
+        
+        <p style="font-size: 15px; line-height: 1.6; color: #555;">
+          Thank you for choosing TurfMania!
+        </p>
+        
+        <p style="font-size: 15px; line-height: 1.6; color: #555;">
+          Best regards,<br>
+          The TurfMania Team
+        </p>
+        
+        <p style="font-size: 12px; color: #999; font-style: italic; margin-top: 20px; text-align: center;">
+          This is an automated message. Please do not reply directly to this email.
+        </p>
+      </div>
+    `;
+  }
+
   private async handleOwnerNotifications(
     user: any,
     request: IOrganizationRequest,
     subject: string,
-    message: string,
+    textMessage: string,
+    htmlContent: string,
     approved: boolean,
     wasEdited: boolean,
     isOwner: boolean,
   ): Promise<void> {
     if (isOwner) {
-      console.log("email sent to ",user.email+subject+message);
       // Send owner-specific message
-      await sendEmail(user.email, subject, message);
-      console.log("email sent to ",user.email+subject+message);
+      await sendEmail(user.email, subject, textMessage, htmlContent);
     } else {
       // Send standard message to requester
-      await sendEmail(user.email, subject, message);
+      await sendEmail(user.email, subject, textMessage, htmlContent);
 
       // Send owner-specific message to owner (if different)
-      const ownerMessage = this.buildOwnerMessage(
+      const ownerTextMessage = this.buildOwnerMessage(
         request,
-        message,
+        textMessage,
         approved,
         wasEdited,
       );
-      await sendEmail(request.ownerEmail, subject, ownerMessage);
+      
+      const ownerHtmlContent = this.buildOwnerHtmlMessage(
+        request,
+        approved,
+        wasEdited
+      );
+      
+      await sendEmail(request.ownerEmail, subject, ownerTextMessage, ownerHtmlContent);
     }
   }
 
@@ -501,6 +730,62 @@ export default class OrganizationRequestService {
         baseMessage.indexOf('\n\nIf you have any questions'),
       )
     );
+  }
+  
+  private buildOwnerHtmlMessage(
+    request: IOrganizationRequest,
+    approved: boolean,
+    wasEdited: boolean,
+  ): string {
+    const headerColor = approved ? '#4a9d61' : '#d32f2f';
+    const headerText = approved 
+      ? wasEdited 
+        ? 'Organization Request Approved with Changes'
+        : 'Organization Request Approved'
+      : 'Organization Request Rejected';
+    
+    let statusText: string;
+    if (approved) {
+      statusText = wasEdited ? 'approved with some modifications' : 'approved';
+    } else {
+      statusText = 'rejected';
+    }
+    
+    const ownerName = request.ownerEmail.split('@')[0];
+    
+    let htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px; background-color: #f9f9f9;">
+        <h2 style="color: ${headerColor}; text-align: center; margin-bottom: 20px;">${headerText}</h2>
+        
+        <div style="background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 3px; padding: 15px; margin-bottom: 20px;">
+          <h3 style="color: #333; margin-top: 0;">Dear ${ownerName},</h3>
+          
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            You had been designated as the owner of organization 
+            <strong>"${request.organizationName}"</strong> which was just ${statusText} on TurfMania.
+          </p>
+    `;
+    
+    if (approved) {
+      htmlContent += `
+        <div style="background-color: #eafbf0; border-left: 4px solid #4a9d61; padding: 15px; margin: 20px 0;">
+          <p style="font-size: 15px; margin: 0;">
+            As the owner, you have full administrative access to manage the organization.
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="${process.env.ORGANIZATION_URL}" 
+             style="background-color: #4a9d61; color: white; padding: 12px 24px; text-decoration: none; 
+                    border-radius: 4px; font-weight: bold; display: inline-block;">
+            Go to Organization Dashboard
+          </a>
+        </div>
+      `;
+    }
+    
+    htmlContent += this.getHtmlCommonFooter();
+    return htmlContent;
   }
 
   // Reject request and notify requester
@@ -648,9 +933,12 @@ export default class OrganizationRequestService {
     return result.modifiedCount;
   }
 
-  public startPeriodicCleanup(timeoutHours: number = 2, intervalHours: number = 1): void {
+  public startPeriodicCleanup(
+    timeoutHours: number = 2,
+    intervalHours: number = 1,
+  ): void {
     const intervalMs = intervalHours * 60 * 60 * 1000;
-    
+
     setInterval(async () => {
       try {
         const count = await this.resetStuckProcessingRequests(timeoutHours);

@@ -7,6 +7,7 @@ import User from '../user/user.model';
 import UserRoleAssignment, {
   IUserRoleAssignment,
 } from './userRoleAssignment.model';
+import { permissionCacheService } from '../../shared/service/permissionCache.service';
 
 class UserRoleAssignmentService {
   private async validateIds(
@@ -109,6 +110,12 @@ class UserRoleAssignmentService {
         throw new ErrorResponse('Failed to create role assignment', 500);
       }
 
+      await permissionCacheService.invalidateForUser(
+        userObjectId,
+        scope,
+        contextObjectId,
+      );
+
       return assignment;
     } catch (error: any) {
       if (error.code === 11000) {
@@ -120,6 +127,44 @@ class UserRoleAssignmentService {
       console.error('Error assigning role:', error);
       throw new ErrorResponse(
         error.message ?? 'Failed to assign role',
+        error.statusCode ?? 500,
+      );
+    }
+  }
+
+  public async unassignRoleFromUser(
+    userId: string,
+    roleId: string,
+    scope: PermissionScope,
+    scopeId?: string,
+  ): Promise<void> {
+    try {
+      const { userObjectId, roleObjectId } = await this.validateIds(
+        userId,
+        roleId,
+      );
+      const contextObjectId = await this.validateScopeContext(scope, scopeId);
+
+      const assignment = await UserRoleAssignment.findOneAndDelete({
+        userId: userObjectId,
+        roleId: roleObjectId,
+        scope,
+        ...(contextObjectId && { scopeId: contextObjectId }),
+      });
+
+      if (!assignment) {
+        throw new ErrorResponse('Role assignment not found', 404);
+      }
+
+      await permissionCacheService.invalidateForUser(
+        userObjectId,
+        scope,
+        contextObjectId,
+      );
+    } catch (error: any) {
+      console.error('Error unassigning role:', error);
+      throw new ErrorResponse(
+        error.message ?? 'Failed to unassign role',
         error.statusCode ?? 500,
       );
     }

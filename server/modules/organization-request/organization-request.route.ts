@@ -28,7 +28,7 @@ const organizationRequestController = new OrganizationRequestController();
 // Authenticated Endpoints
 router.post(
   "/",
-  standardApiLimiter,
+  
   protect,
   upload.array("images", 5),
   organizationRequestController.createOrganizationRequest
@@ -36,14 +36,14 @@ router.post(
 
 router.get(
   "/my/:id",
-  standardApiLimiter,
+  
   protect,
   organizationRequestController.getOrganizationRequestAsUser
 );
 
 router.get(
   "/user",
-  standardApiLimiter,
+  
   protect,
   organizationRequestController.getUserOrganizationRequests
 );
@@ -61,7 +61,7 @@ router.get(
 
 router.put(
   "/:id/process",
-  standardApiLimiter,
+  
   protect,
   checkPermission('manage_organization_requests'),
   organizationRequestController.startProcessingRequest
@@ -69,7 +69,7 @@ router.put(
 
 router.put(
   "/:id/cancel-processing",
-  standardApiLimiter,
+  
   protect,
   checkPermission('manage_organization_requests'),
   organizationRequestController.cancelProcessingRequest
@@ -77,7 +77,7 @@ router.put(
 
 router.put(
   "/:id/reject",
-  standardApiLimiter,
+  
   protect,
   checkPermission('manage_organization_requests'),
   organizationRequestController.rejectOrganizationRequest
@@ -85,7 +85,7 @@ router.put(
 
 router.get(
   "/admin/:id",
-  standardApiLimiter,
+  
   protect,
   checkPermission('manage_organization_requests'),
   organizationRequestController.getOrganizationRequestAsAdmin
@@ -93,7 +93,7 @@ router.get(
 
 router.get(
   "/",
-  standardApiLimiter,
+  
   protect,
 
   checkPermission('manage_organization_requests'),

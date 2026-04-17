@@ -25,18 +25,18 @@ const upload = multer({
 
 // Protected routes
 const turfReviewController = new TurfReviewController();
-router.post("/review/",standardApiLimiter, protect, upload.array("images", 2), turfReviewController.createTurfReview);
-router.put("/review/:reviewId",standardApiLimiter, protect, upload.array("images", 2), turfReviewController.updateReview);
-router.delete("/review/:reviewId",standardApiLimiter, protect, turfReviewController.deleteTurfReview);
-router.get("/user/",standardApiLimiter, protect, turfReviewController.getReviewsByUser);
-router.get("/turf/:turfId",standardApiLimiter, protect, turfReviewController.getReviewsByTurf);
-router.get("/has-reviewed/:turfId",standardApiLimiter, protect, turfReviewController.hasUserReviewedTurf);
+router.post("/review/", protect, upload.array("images", 2), turfReviewController.createTurfReview);
+router.put("/review/:reviewId", protect, upload.array("images", 2), turfReviewController.updateReview);
+router.delete("/review/:reviewId", protect, turfReviewController.deleteTurfReview);
+router.get("/user/", protect, turfReviewController.getReviewsByUser);
+router.get("/turf/:turfId", protect, turfReviewController.getReviewsByTurf);
+router.get("/has-reviewed/:turfId", protect, turfReviewController.hasUserReviewedTurf);
 
 // Public routes
-router.get("/turf/:turfId/public",standardApiLimiter, turfReviewController.getReviewsByTurfPublic);
-router.get("/review/:reviewId",standardApiLimiter, turfReviewController.getReviewById);
-router.get("/turf-summary/:turfId",standardApiLimiter, turfReviewController.getTurfReviewSummary);
-router.get("/organization-summary/:organizationId",standardApiLimiter, turfReviewController.getOrganizationTurfReviewSummary);
+router.get("/turf/:turfId/public", turfReviewController.getReviewsByTurfPublic);
+router.get("/review/:reviewId", turfReviewController.getReviewById);
+router.get("/turf-summary/:turfId", turfReviewController.getTurfReviewSummary);
+router.get("/organization-summary/:organizationId", turfReviewController.getOrganizationTurfReviewSummary);
 
 
 export default router;

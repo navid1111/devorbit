@@ -24,14 +24,14 @@ const upload = multer({
   },
 });
 
-router.post("/",standardApiLimiter,upload.array("images", 5), turfController.createTurf);
-router.get("/",standardApiLimiter, turfController.getTurfs);
-router.get("/:id",standardApiLimiter, turfController.getTurfById);
-router.put("/:id",standardApiLimiter,protect, upload.array("images", 5), turfController.updateTurfById);
-router.delete("/:id",standardApiLimiter,protect, turfController.deleteTurfById);
-router.get("/filter/search",standardApiLimiter, turfController.filterTurfs);
-router.get("/:id/status",standardApiLimiter, turfController.getTurfStatus);
-router.get("/organization/:organizationId",standardApiLimiter, turfController.getTurfsByOrganizationId);
+router.post("/",upload.array("images", 5),protect, turfController.createTurf);
+router.get("/", turfController.getTurfs);
+router.get("/:id", turfController.getTurfById);
+router.put("/:id",protect, upload.array("images", 5), turfController.updateTurfById);
+router.delete("/:id",protect, turfController.deleteTurfById);
+router.get("/filter/search", turfController.filterTurfs);
+router.get("/:id/status", turfController.getTurfStatus);
+router.get("/organization/:organizationId", turfController.getTurfsByOrganizationId);
 
 
 

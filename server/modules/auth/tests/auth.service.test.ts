@@ -118,8 +118,9 @@ describe('AuthService', () => {
       expect(user.save).toHaveBeenCalled();
       expect(sendEmail).toHaveBeenCalledWith(
         'test@example.com',
-        'Verify Your Email',
-        expect.stringContaining('http://localhost:3000/verify-email?token=mock-verification-token&id=user123')
+        'Verify Your Email - TurfMania',
+        expect.stringContaining('http://localhost:3000/verify-email?token=mock-verification-token&id=user123'),
+        expect.any(String)
       );
     });
   });
@@ -256,8 +257,9 @@ describe('resetUserPassword function', () => {
     expect(Token.findByIdAndDelete).toHaveBeenCalledWith('token123');
     expect(sendEmail).toHaveBeenCalledWith(
       'user@example.com',
-      'Password Reset Successful',
-      expect.stringContaining('Your password has been successfully reset')
+      'Password Reset Successful - TurfMania',
+      expect.stringContaining('Your password has been successfully reset'),
+      expect.any(String)
     );
   });
   

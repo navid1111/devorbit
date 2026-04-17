@@ -9,6 +9,7 @@ import ErrorResponse from "../../utils/errorResponse";
 
 import Permission from "../permission/permission.model";
 import { IRole } from "../role/role.model";
+import { permissionCacheService } from "../../shared/service/permissionCache.service";
 
 interface JwtPayload {
   id: string;
@@ -43,7 +44,7 @@ export const protect = async (
 
     if (!token && !adminToken) {
       return next(
-        new ErrorResponse("Not authorized to access this route", 401)
+        new ErrorResponse("Not authorized to access this route. User needs to login or register.", 401)
       );
     }
 
@@ -107,7 +108,10 @@ function getScopeContext(
   req: AuthRequest
 ): Types.ObjectId | null {
   const organizationId =
-    req.organizationId ?? req.params.id ?? req.params.organizationId;
+    req.query.organizationId ??
+    req.organizationId ??
+    req.params.id ??
+    req.params.organizationId;
   const eventId = req.eventId ?? req.params.eventId;
 
   if (scope === PermissionScope.ORGANIZATION && organizationId) {
@@ -131,6 +135,16 @@ async function checkUserPermission(
     ...(contextId && { scopeId: contextId }),
   };
 
+  const cachedPermissionIds = await permissionCacheService.getPermissionIds(
+    userId,
+    scope,
+    contextId
+  );
+
+  if (cachedPermissionIds) {
+    return cachedPermissionIds.includes(permissionId.toString());
+  }
+
   const assignments = await UserRoleAssignment.findOne(query).populate<{
     roleId: IRole;
   }>({
@@ -142,11 +156,13 @@ async function checkUserPermission(
     },
   });
 
-  if (!assignments?.roleId?.permissions) return false;
+  const permissionIds = assignments?.roleId?.permissions
+    ? assignments.roleId.permissions.map((p: { _id: Types.ObjectId }) => p._id.toString())
+    : [];
 
-  return assignments.roleId.permissions.some((p: { _id: Types.ObjectId }) =>
-    p._id.equals(permissionId)
-  );
+  await permissionCacheService.setPermissionIds(userId, scope, permissionIds, contextId);
+
+  return permissionIds.includes(permissionId.toString());
 }
 
 // Main middleware with reduced complexity
@@ -205,7 +221,6 @@ export const checkPermission = (requiredPermissionName: string) => {
     }
   };
 };
-
 
 export const restrictToOrganizationMembers = async (
   req: AuthRequest,

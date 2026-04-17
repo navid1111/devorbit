@@ -4,7 +4,7 @@ export type BookingStatus =
   | 'created' 
   | 'advance_payment_completed' 
   | 'completed' 
-  | 'rejected';
+  | 'cancelled';
 
 export type PaymentMethod = 'stripe' | 'cash';
 

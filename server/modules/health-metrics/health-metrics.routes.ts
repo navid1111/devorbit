@@ -30,7 +30,7 @@ metricsRouter.get(
 const metricsApiRouter = express.Router();
 metricsApiRouter.get(
   '/latest',
-  standardApiLimiter,
+  
 
   protect,
   checkPermission('get_health_check'),
@@ -38,7 +38,7 @@ metricsApiRouter.get(
 );
 metricsApiRouter.get(
   '/history',
-  standardApiLimiter,
+  
     protect,
   checkPermission('get_health_check'),
   healthController.getMetricsHistory,

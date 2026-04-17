@@ -6,11 +6,20 @@ import Organization from '../../organization/organization.model';
 import UserRoleAssignment from '../userRoleAssignment.model';
 import { PermissionScope } from '../../permission/permission.model';
 import ErrorResponse from '../../../utils/errorResponse';
+import { permissionCacheService } from '../../../shared/service/permissionCache.service';
 
 jest.mock('../../user/user.model');
 jest.mock('../../role/role.model');
 jest.mock('../../organization/organization.model');
 jest.mock('../userRoleAssignment.model');
+jest.mock('../../../shared/service/permissionCache.service', () => ({
+  permissionCacheService: {
+    getPermissionIds: jest.fn(),
+    setPermissionIds: jest.fn(),
+    invalidateForUser: jest.fn(),
+    invalidateForUsers: jest.fn(),
+  },
+}));
 
 describe('UserRoleAssignmentService', () => {
   const validUserId = new mongoose.Types.ObjectId().toString();
@@ -120,6 +129,7 @@ describe('UserRoleAssignmentService', () => {
 
       const result = await userRoleAssignmentService.assignRoleToUser(validUserId, validRoleId, PermissionScope.GLOBAL);
       expect(result).toEqual(assignment);
+      expect(permissionCacheService.invalidateForUser).toHaveBeenCalled();
     });
 
     it('should assign organization role successfully', async () => {
@@ -131,6 +141,7 @@ describe('UserRoleAssignmentService', () => {
 
       const result = await userRoleAssignmentService.assignRoleToUser(validUserId, validRoleId, PermissionScope.ORGANIZATION, validOrgId);
       expect(result).toEqual(assignment);
+      expect(permissionCacheService.invalidateForUser).toHaveBeenCalled();
     });
 
     it('should handle unexpected errors', async () => {
@@ -139,6 +150,37 @@ describe('UserRoleAssignmentService', () => {
       await expect(
         userRoleAssignmentService.assignRoleToUser(validUserId, validRoleId, PermissionScope.GLOBAL)
       ).rejects.toThrow(ErrorResponse);
+    });
+  });
+
+  describe('unassignRoleFromUser', () => {
+    it('should unassign role and invalidate cache', async () => {
+      (Organization.exists as any).mockResolvedValue(true);
+      (UserRoleAssignment.findOneAndDelete as any).mockResolvedValue({ _id: 'assignmentId' });
+
+      await userRoleAssignmentService.unassignRoleFromUser(
+        validUserId,
+        validRoleId,
+        PermissionScope.ORGANIZATION,
+        validOrgId,
+      );
+
+      expect(UserRoleAssignment.findOneAndDelete).toHaveBeenCalled();
+      expect(permissionCacheService.invalidateForUser).toHaveBeenCalled();
+    });
+
+    it('should throw 404 when assignment does not exist', async () => {
+      (Organization.exists as any).mockResolvedValue(true);
+      (UserRoleAssignment.findOneAndDelete as any).mockResolvedValue(null);
+
+      await expect(
+        userRoleAssignmentService.unassignRoleFromUser(
+          validUserId,
+          validRoleId,
+          PermissionScope.ORGANIZATION,
+          validOrgId,
+        ),
+      ).rejects.toThrow(new ErrorResponse('Role assignment not found', 404));
     });
   });
 });

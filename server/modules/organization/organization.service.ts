@@ -9,6 +9,7 @@ import Permission, { PermissionScope } from '../permission/permission.model';
 import Role, { IRole } from '../role/role.model';
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
 import User from '../user/user.model';
+import { permissionCacheService } from '../../shared/service/permissionCache.service';
 
 import { TurfReview } from '../turf-review/turf-review.model';
 import { Turf } from '../turf/turf.model';
@@ -77,6 +78,17 @@ class OrganizationService {
         imageUrls = uploadedImages.map(img => img.url);
       }
 
+     
+      if (!requestId) {
+        console.log(
+          'requestId not provided, skipping request approval process.',
+        );
+      } else {
+        console.log(
+          'requestId provided, will approve the request after creating the organization.',
+        );
+      }
+
       // If requestId is provided, use a transaction to ensure atomicity
       if (requestId && adminId) {
         const session = await mongoose.startSession();
@@ -88,9 +100,9 @@ class OrganizationService {
           // Execute all operations within a transaction
 
           await session.withTransaction(async () => {
-            // Create organization with basic information
+            // Create organization with basic information - using exact name without sanitization
             organization = new Organization({
-              name,
+              name, // Use the name exactly as provided
               facilities,
               orgContactPhone,
               orgContactEmail,
@@ -489,17 +501,12 @@ class OrganizationService {
     try {
       const organization = await Organization.findById(organizationId);
       if (!organization) throw new ErrorResponse('Organization not found', 404);
-      if (
-        typeof roleName !== 'string' ||
-        !/^[a-zA-Z0-9\s-_]+$/.exec(roleName)
-      ) {
-        throw new ErrorResponse('Role name contains invalid characters', 400);
-      }
+     
       // Validate role name uniqueness within this org
       const existingRole = await Role.findOne({
         name: roleName,
         scope: PermissionScope.ORGANIZATION,
-        scopeId: organizationId,
+        
       });
       if (existingRole)
         throw new ErrorResponse(
@@ -597,11 +604,32 @@ class OrganizationService {
     roleId: string,
     permissions: string[],
   ) {
-    return Role.findOneAndUpdate(
+    const updatedRole = await Role.findOneAndUpdate(
       { _id: roleId, scope: PermissionScope.ORGANIZATION, scopeId: orgId },
       { permissions },
       { new: true },
     );
+
+    if (!updatedRole) {
+      return updatedRole;
+    }
+
+    const orgObjectId = new Types.ObjectId(orgId);
+    const assignments = await UserRoleAssignment.find({
+      roleId: updatedRole._id,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgObjectId,
+    })
+      .select('userId')
+      .lean<{ userId: Types.ObjectId }[]>();
+
+    await permissionCacheService.invalidateForUsers(
+      assignments.map(assignment => assignment.userId),
+      PermissionScope.ORGANIZATION,
+      orgObjectId,
+    );
+
+    return updatedRole;
   }
 
   async assignUserToOrganizationRole(

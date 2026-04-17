@@ -28,7 +28,7 @@ export default class TurfController {
         operatingHours,
       } = req.body;
       const images = req.files as Express.Multer.File[];
-
+      console.log(organization);
       try {
         // Validate required fields
         if (!name || !organization) {
@@ -62,7 +62,7 @@ export default class TurfController {
         // Combine all parsed data
         const turfData: Partial<ITurf> = {
           name,
-          organization: organization.id,
+          organization,
           ...basePriceResult.data,
           ...sportsResult.data,
           ...operatingHoursResult.data,

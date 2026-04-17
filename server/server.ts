@@ -7,13 +7,22 @@ const port = process.env.PORT ?? 3000;
 // Start the server
 const server = app.listen(port, () => {
   console.log(`Server app listening on port ${port}!`);
-  
+
   // Start periodic services
   const orgRequestService = new OrganizationRequestService();
-  orgRequestService.startPeriodicCleanup(); // Default 2h timeout, 1h interval
-  
+  try {
+    orgRequestService.startPeriodicCleanup(); // Default 2h timeout, 1h interval
+  }
+  catch (error) {
+    console.error('Error starting periodic cleanup:', error);
+  }
   const bookingService = new BookingService();
-  bookingService.startPeriodicReminders(); // Default 5m interval
+  try {
+    bookingService.startPeriodicReminders(); // Default 5m interval
+  }
+  catch (error) {
+    console.error('Error starting periodic reminders:', error);
+  }
 });
 
 // Handle shutdown gracefully
